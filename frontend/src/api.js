@@ -1,9 +1,15 @@
 const FIXED_BACKEND_ORIGIN = 'http://192.168.1.176:3000';
+const SL1DE_WEB_BACKEND_ORIGIN = 'https://api.sl1de.xyz';
+const IS_WEB_ON_SL1DE_DOMAIN = typeof window !== 'undefined'
+  && /(^|\.)sl1de\.xyz$/i.test(window.location.hostname);
 const IS_NATIVE_RUNTIME = typeof window !== 'undefined'
   && (!!window.electron?.isElectron || !!window.Capacitor?.isNativePlatform?.());
 const WEB_BACKEND_ORIGIN = import.meta.env.VITE_BACKEND_ORIGIN
-  || (typeof window !== 'undefined' ? window.location.origin : FIXED_BACKEND_ORIGIN);
-const WEB_API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+  || (IS_WEB_ON_SL1DE_DOMAIN
+    ? SL1DE_WEB_BACKEND_ORIGIN
+    : (typeof window !== 'undefined' ? window.location.origin : FIXED_BACKEND_ORIGIN));
+const WEB_API_BASE = import.meta.env.VITE_API_BASE_URL
+  || (IS_WEB_ON_SL1DE_DOMAIN ? `${SL1DE_WEB_BACKEND_ORIGIN}/api` : '/api');
 const BACKEND_ORIGIN = IS_NATIVE_RUNTIME
   ? FIXED_BACKEND_ORIGIN
   : WEB_BACKEND_ORIGIN;

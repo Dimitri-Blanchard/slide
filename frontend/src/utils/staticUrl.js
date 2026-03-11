@@ -6,15 +6,19 @@
  */
 
 const FIXED_BACKEND_ORIGIN = 'http://192.168.1.176:3000';
+const SL1DE_WEB_BACKEND_ORIGIN = 'https://api.sl1de.xyz';
 
 function getStaticBase() {
   const isNativeRuntime = typeof window !== 'undefined'
     && (!!window.electron?.isElectron || !!window.Capacitor?.isNativePlatform?.());
+  const isWebOnSl1deDomain = typeof window !== 'undefined'
+    && /(^|\.)sl1de\.xyz$/i.test(window.location.hostname);
   // CDN takes priority when configured
   const cdn = import.meta.env.VITE_CDN_BASE_URL || (typeof window !== 'undefined' && window.electron?.cdnBaseUrl) || '';
   if (cdn) return cdn.replace(/\/$/, '');
   const webBackendOrigin = import.meta.env.VITE_BACKEND_ORIGIN || '';
   if (!isNativeRuntime && webBackendOrigin) return webBackendOrigin.replace(/\/$/, '');
+  if (!isNativeRuntime && isWebOnSl1deDomain) return SL1DE_WEB_BACKEND_ORIGIN;
   // Web over HTTPS must stay same-origin to avoid Mixed Content + PNA blocks.
   if (!isNativeRuntime && typeof window !== 'undefined') return window.location.origin;
   // Native runtimes can call backend directly.

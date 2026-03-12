@@ -41,7 +41,7 @@ export default function App() {
   const rootRedirect = getToken() ? '/channels/@me' : '/login';
 
   return (
-    <div className="app-root">
+    <div className={`app-root ${isElectron ? 'has-electron-title-bar' : ''}`}>
       <ElectronTitleBar />
       <div className="app-content">
         <Suspense fallback={null}>

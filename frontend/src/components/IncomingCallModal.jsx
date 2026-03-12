@@ -23,7 +23,7 @@ export default function IncomingCallModal() {
       Notification.requestPermission().catch(() => {});
     }
     sendNotification(`${callerName} is calling you`, { body: 'Tap to answer', isCall: true });
-    startRingtone();
+    startRingtone({ force: true });
     return stopRingtone;
   }, [incomingCall, sendNotification, startRingtone, stopRingtone]);
 

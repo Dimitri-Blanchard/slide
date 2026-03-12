@@ -1,8 +1,13 @@
 .electron-title-bar {
   display: flex;
   align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 32px;
   min-height: 32px;
+  z-index: 2147483646;
   background: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-subtle);
   -webkit-app-region: drag;

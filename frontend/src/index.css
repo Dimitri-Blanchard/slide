@@ -52,6 +52,10 @@ html, body, #root {
   flex-shrink: 0;
 }
 
+.app-root.has-electron-title-bar > .app-content {
+  padding-top: 32px;
+}
+
 .app-root > .app-content {
   flex: 1;
   min-height: 0;

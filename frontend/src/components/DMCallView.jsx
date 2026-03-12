@@ -101,7 +101,6 @@ export default function DMCallView({ otherUserName, otherUser, isGroup }) {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [videoLayout, setVideoLayout] = useState('grid'); // 'grid' | 'spotlight'
   const [showParticipants, setShowParticipants] = useState(false);
-  const [isRingingActive, setIsRingingActive] = useState(true); // false after 1 min of no answer
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -140,24 +139,14 @@ export default function DMCallView({ otherUserName, otherUser, isGroup }) {
   const callTime = useCallTimer(isConnected);
 
   // Ringback tone while waiting for the other person to answer (outbound call)
-  // Stops after 1 minute if no answer (user stays in call, can use "Ring" to try again)
-  // ringAgainTrigger restarts the ringtone when user clicks "Ring" from context menu
-  // isRingingActive: hide other person's avatar when not actively ringing
-  const RING_TIMEOUT_MS = 60 * 1000;
+  // Keep ringing until answered or call ends.
   useEffect(() => {
     if (!isWaiting) {
       stopRingtone();
-      setIsRingingActive(true); // reset for next wait
       return;
     }
-    setIsRingingActive(true);
-    startRingtone();
-    const t = setTimeout(() => {
-      stopRingtone();
-      setIsRingingActive(false);
-    }, RING_TIMEOUT_MS);
+    startRingtone({ force: true });
     return () => {
-      clearTimeout(t);
       stopRingtone();
     };
   }, [isWaiting, ringAgainTrigger, startRingtone, stopRingtone]);
@@ -195,10 +184,8 @@ export default function DMCallView({ otherUserName, otherUser, isGroup }) {
       </svg>
     );
   } else if (isWaiting) {
-    statusClass = isRingingActive ? 'ringing' : 'ringing-stopped';
-    statusText = isRingingActive
-      ? (isGroup ? 'Waiting for others...' : `Calling ${displayName}...`)
-      : 'No answer · Right-click to Ring';
+    statusClass = 'ringing';
+    statusText = isGroup ? 'Waiting for others...' : `Calling ${displayName}...`;
     statusIcon = (
       <svg className="dm-call-status-icon ring" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
@@ -276,7 +263,7 @@ export default function DMCallView({ otherUserName, otherUser, isGroup }) {
                 isSelf={false}
               />
             ))
-          ) : isRingingActive ? (
+          ) : (
             <CallAvatar
               voiceUser={{
                 id: 'placeholder',
@@ -287,7 +274,7 @@ export default function DMCallView({ otherUserName, otherUser, isGroup }) {
               state={isConnecting ? 'connecting' : 'ringing'}
               showName={false}
             />
-          ) : null}
+          )}
           {currentUser && (
             <CallAvatar
               voiceUser={currentUser}

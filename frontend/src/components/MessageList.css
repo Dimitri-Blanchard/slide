@@ -1053,24 +1053,88 @@
 .message-video-wrap {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   max-width: 400px;
   margin-top: 4px;
+  padding: 10px;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-secondary) 92%, #000 8%), var(--bg-secondary));
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 86%, var(--accent) 14%);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.message-video-wrap:hover {
+  border-color: color-mix(in srgb, var(--border-default) 70%, var(--accent) 30%);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
+  transform: translateY(-1px);
+}
+
+.message-video-wrap:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--border-default) 30%);
+  box-shadow:
+    0 14px 30px rgba(0, 0, 0, 0.24),
+    0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .message-video {
   width: 100%;
   max-height: 300px;
-  border-radius: 8px;
-  background: var(--bg-tertiary);
+  display: block;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #05070d;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 82%, #000 18%);
+  outline: none;
+}
+
+/* Lightweight custom skin for native controls (Chromium/WebKit) */
+.message-video::-webkit-media-controls-enclosure {
+  border-radius: 0 0 10px 10px;
+  background: linear-gradient(
+    to top,
+    rgba(6, 10, 19, 0.96) 0%,
+    rgba(6, 10, 19, 0.86) 55%,
+    rgba(6, 10, 19, 0.66) 100%
+  );
+}
+
+.message-video::-webkit-media-controls-panel {
+  background: transparent;
+  padding: 0 8px 8px;
+}
+
+.message-video::-webkit-media-controls-current-time-display,
+.message-video::-webkit-media-controls-time-remaining-display {
+  color: #f1f4ff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.message-video::-webkit-media-controls-play-button,
+.message-video::-webkit-media-controls-mute-button,
+.message-video::-webkit-media-controls-fullscreen-button {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+}
+
+.message-video::-webkit-media-controls-timeline {
+  margin: 0 8px;
+}
+
+.message-video::-webkit-media-controls-volume-slider {
+  max-width: 88px;
 }
 
 .message-file-info {
   display: flex;
   justify-content: space-between;
-  padding: 0 4px;
+  gap: 10px;
+  padding: 0 2px 1px;
   font-size: 0.8rem;
   color: var(--text-muted);
+  line-height: 1.2;
 }
 
 /* ═══════════════════════════════════════════════════════════

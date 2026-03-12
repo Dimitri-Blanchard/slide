@@ -23,12 +23,14 @@ const CommunityServersPage = lazy(() => import('../pages/CommunityServersPage'))
 import SearchModal from '../components/SearchModal';
 import ActiveCallsPanel from '../components/ActiveCallsPanel';
 import VoiceFullscreenOverlay from '../components/VoiceFullscreenOverlay';
+import DMCallPiP from '../components/DMCallPiP';
 import ServerErrorBoundary from '../components/ServerErrorBoundary';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
 import { useOffline } from '../context/OfflineContext';
 import { useScene } from '../context/SceneContext';
 import { useNotification } from '../context/NotificationContext';
+import { useVoice } from '../context/VoiceContext';
 import Settings from '../pages/Settings';
 import './AppLayout.css';
 
@@ -137,6 +139,7 @@ function AppLayout() {
   // Mobile bottom nav tab: home (DMs + servers) | notifications | profile
   const [mobileTab, setMobileTab] = useState('home');
   const { user } = useAuth();
+  const { voiceConversationId } = useVoice();
   const { inboxItems } = useNotification();
   const socket = useSocket();
   const { registerKeybindHandler } = useSettings();
@@ -854,6 +857,16 @@ function AppLayout() {
 
   // Hide sidebar when viewing a team (server) or community page (full-screen)
   const showSidebar = !params.teamId && pathname !== '/community';
+  const shouldShowDmPiP = !!voiceConversationId && String(voiceConversationId) !== String(params.conversationId);
+  const pipConversation = shouldShowDmPiP
+    ? conversations.find((c) => Number(c.conversation_id) === Number(voiceConversationId))
+    : null;
+  const pipName = pipConversation?.is_group
+    ? (pipConversation?.group_name || 'Group call')
+    : pipConversation?.participants?.find((p) => p.id !== user?.id)?.display_name || 'Call';
+  const pipAvatar = pipConversation?.is_group
+    ? null
+    : pipConversation?.participants?.find((p) => p.id !== user?.id)?.avatar_url || null;
 
   return (
     <div className={`app-layout scene-${scene} ${mobileNavOpen ? 'mobile-nav-open' : ''}`}>
@@ -955,6 +968,14 @@ function AppLayout() {
         conversations={conversations}
         teams={teams}
       />
+
+      {shouldShowDmPiP && (
+        <DMCallPiP
+          conversationId={voiceConversationId}
+          conversationName={pipName}
+          avatarUrl={pipAvatar}
+        />
+      )}
 
     </div>
   );

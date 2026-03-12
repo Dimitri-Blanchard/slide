@@ -167,8 +167,8 @@ export function SoundProvider({ children }) {
     if (ctx && dest) playCallEndSound(ctx, dest, soundVolume);
   }, [getDestination, soundVolume]);
 
-  const startRingtone = useCallback(() => {
-    if (settings?.notification_sound === false) return;
+  const startRingtone = useCallback(({ force = false } = {}) => {
+    if (!force && settings?.notification_sound === false) return;
     const { ctx, dest } = getDestination();
     if (!ctx || !dest) return;
     if (ringIntervalRef.current) return;

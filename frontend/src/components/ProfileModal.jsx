@@ -178,7 +178,7 @@ const ProfileModal = memo(function ProfileModal({ userId, onClose }) {
   const bannerStyle  = bannerUrl
     ? (hasGifBanner
         ? { backgroundColor: c1 }
-        : { backgroundImage: `url(${bannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center top' })
+        : { backgroundImage: `url(${bannerUrl})`, backgroundSize: 'cover', backgroundPosition: `center ${profile?.banner_position || 'center'}` })
     : hasDualBanner
       ? { backgroundImage: verticalGrad(c1, c2) }
       : { backgroundColor: c1 };

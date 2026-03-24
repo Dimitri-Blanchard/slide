@@ -7,7 +7,7 @@
   right: 0;
   height: 32px;
   min-height: 32px;
-  z-index: 2147483646;
+  z-index: 2147483647;
   background: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-subtle);
   -webkit-app-region: drag;
@@ -18,17 +18,50 @@
 .electron-title-bar-drag {
   flex: 1;
   -webkit-app-region: drag;
+  height: 100%;
 }
 
-.electron-title-bar-title {
+/* Icon + title group, absolutely centered */
+.electron-title-bar-info {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary, #f2f3f5);
+  display: flex;
+  align-items: center;
+  gap: 6px;
   -webkit-app-region: no-drag;
   pointer-events: none;
+  white-space: nowrap;
+}
+
+.electron-title-bar-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.electron-title-bar-icon-initials {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-modifier-accent, #5865f2);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.electron-title-bar-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #b5bac1);
+  white-space: nowrap;
 }
 
 .electron-title-bar-controls {
@@ -47,6 +80,7 @@
   color: var(--text-secondary, #b5bac1);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  -webkit-app-region: no-drag;
 }
 
 .electron-title-bar-btn:hover {
@@ -59,6 +93,39 @@
   color: #fff;
 }
 
+/* Navigation arrows */
+.electron-title-bar-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.electron-title-bar-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #b5bac1);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+  -webkit-app-region: no-drag;
+}
+
+.electron-title-bar-nav-btn:hover {
+  background: var(--bg-hover, rgba(79, 84, 92, 0.32));
+  color: var(--text-primary, #f2f3f5);
+}
+
+.electron-title-bar-nav-btn:active {
+  background: var(--bg-active, rgba(79, 84, 92, 0.48));
+}
+
 /* macOS: traffic lights on the left */
 .electron-title-bar-mac .electron-title-bar-controls-left {
   margin-left: 12px;
@@ -67,4 +134,8 @@
 
 .electron-title-bar-mac .electron-title-bar-drag {
   margin-left: 0;
+}
+
+.electron-title-bar-mac .electron-title-bar-nav {
+  margin-left: 4px;
 }

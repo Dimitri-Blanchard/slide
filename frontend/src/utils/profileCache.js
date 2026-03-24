@@ -105,6 +105,18 @@ export function getCachedProfile(userId) {
   return getFromMemory(userId) ?? getFromStorage(userId);
 }
 
+/** Invalidate cached profile so next fetch returns fresh data */
+export function invalidateProfile(userId) {
+  const id = String(userId);
+  memory.delete(id);
+  lru = lru.filter((x) => x !== id);
+  try {
+    const data = getStorage();
+    delete data[id];
+    setStorage(data);
+  } catch (_) {}
+}
+
 export async function getProfile(userId) {
   const id = String(userId);
   const cached = getFromMemory(userId) ?? getFromStorage(userId);

@@ -187,14 +187,27 @@ export function useAudioDevices(settings) {
     }
   }, [settings]);
   
-  // Initial device enumeration
+  // Initial device enumeration — auto-request permission if devices lack labels
   useEffect(() => {
-    enumerateDevices();
-    
+    (async () => {
+      await enumerateDevices();
+      // If after enumeration we have no labels, prompt for permission once
+      if (!permissionGranted) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream.getTracks().forEach(t => t.stop());
+          setPermissionGranted(true);
+          await enumerateDevices();
+        } catch (_) {
+          // User denied — continue with unlabeled devices
+        }
+      }
+    })();
+
     // Listen for device changes
     const handleDeviceChange = () => enumerateDevices();
     navigator.mediaDevices?.addEventListener('devicechange', handleDeviceChange);
-    
+
     return () => {
       navigator.mediaDevices?.removeEventListener('devicechange', handleDeviceChange);
       stopMicTest();

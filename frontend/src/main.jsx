@@ -114,12 +114,13 @@ if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform()) {
   });
 }
 
-// Capacitor WebView requires HashRouter — BrowserRouter causes silent navigation
-// failures where ProtectedRoute redirects back to /login after successful login.
-// Web and Electron continue to use BrowserRouter.
+// Capacitor and Electron require HashRouter — BrowserRouter causes black screen
+// in production (file/local server) and silent navigation failures.
+// Web only uses BrowserRouter.
 const isNativePlatform = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.();
+const isElectron = typeof window !== 'undefined' && window.electron?.isElectron;
 const Router = ({ children }) =>
-  isNativePlatform ? (
+  isNativePlatform || isElectron ? (
     <HashRouter>{children}</HashRouter>
   ) : (
     <BrowserRouter basename={import.meta.env.BASE_URL}>{children}</BrowserRouter>

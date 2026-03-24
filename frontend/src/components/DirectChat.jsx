@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, memo, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Hand, CircleDot, Lock } from 'lucide-react';
-import { direct as directApi, reactions as reactionsApi, pinned as pinnedApi } from '../api';
+import { CircleDot, Lock } from 'lucide-react';
+import { direct as directApi, reactions as reactionsApi, pinned as pinnedApi, friends as friendsApi, invalidateCache } from '../api';
 import { useSocket, useOnlineUsers } from '../context/SocketContext';
 import { useOffline, OFFLINE_SENT_EVENT } from '../context/OfflineContext';
 import { useAuth } from '../context/AuthContext';
@@ -1103,39 +1103,6 @@ const DirectChat = memo(function DirectChat({ conversationId, onConversationsCha
         />
       )}
       
-      {!hasMessages && !loading && (
-        <div className="dm-empty-conversation">
-          <div className="dm-empty-avatar-ring">
-            {isGroup ? (
-              <div className="group-empty-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" opacity="0.6">
-                  <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
-                </svg>
-              </div>
-            ) : (
-              <Avatar user={other} size="xlarge" showPresence />
-            )}
-          </div>
-          <h2 className="dm-empty-name">{title}</h2>
-          <p className="dm-empty-hint">
-            {isGroup 
-              ? `Start chatting with your group! ${otherUsers.length} members.`
-              : <>{t('chat.messageTo')} {other?.display_name || t('chat.someone')}. {isOtherOnline ? (
-                  <span className="dm-online-indicator"><CircleDot size={14} /> {t('common.online')}</span>
-                ) : ''}</>
-            }
-          </p>
-          <div className="dm-empty-wave">
-            <button 
-              className="dm-wave-btn"
-              onClick={() => sendMessage('👋', 'text')}
-            >
-              <Hand size={18} /> Say hello!
-            </button>
-          </div>
-        </div>
-      )}
-      
       <div className="chat-main">
         <FileDropOverlay
           uploadTarget={`@${title}`}
@@ -1144,9 +1111,9 @@ const DirectChat = memo(function DirectChat({ conversationId, onConversationsCha
           onUploadDirect={(file) => uploadFile(file)}
         >
           <div className="chat-main-content">
-            <MessageList 
+            <MessageList
               ref={messageListRef}
-              messages={messages} 
+              messages={messages}
               loading={loading}
               currentUserId={user?.id}
               currentUserName={user?.display_name}
@@ -1166,6 +1133,71 @@ const DirectChat = memo(function DirectChat({ conversationId, onConversationsCha
               pinnedMessageIds={pinnedMessageIds}
               onRetryFailedMessage={retryFailedMessage}
               isDM={true}
+              topBanner={!loading && (
+                <div className="dm-empty-conversation">
+                  <div className="dm-empty-avatar-section">
+                    {isGroup ? (
+                      <div className="group-empty-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" opacity="0.6">
+                          <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                        </svg>
+                      </div>
+                    ) : (
+                      <Avatar user={other} size="xlarge" showPresence />
+                    )}
+                  </div>
+                  <h1 className="dm-empty-name">{title}</h1>
+                  {!isGroup && other?.username && (
+                    <p className="dm-empty-username">{other.username}</p>
+                  )}
+                  <p className="dm-empty-hint">
+                    {(() => {
+                      if (isGroup) return `Start chatting with your group! ${otherUsers.length} members.`;
+                      const name = other?.display_name || t('chat.someone');
+                      const full = t('chat.beginningDm', { name });
+                      const parts = full.split(name);
+                      return <>{parts[0]}<strong>{name}</strong>{parts[1]}</>;
+                    })()}
+                  </p>
+                  {!isGroup && (
+                    <div className="dm-empty-action-row">
+                      <button
+                        className="dm-add-friend-btn"
+                        onClick={async () => {
+                          const username = other?.username || other?.display_name;
+                          if (!username) return;
+                          try {
+                            await friendsApi.sendRequest(username);
+                            invalidateCache('/friends');
+                            window.dispatchEvent(new CustomEvent('slide:friends-changed'));
+                            notify.success((t('friends.requestSent') || 'Friend request sent to {name}').replace('{name}', username));
+                          } catch (err) {
+                            notify.error(err.message);
+                          }
+                        }}
+                      >
+                        {t('friends.addFriend')}
+                      </button>
+                      <button
+                        className="dm-block-btn"
+                        onClick={async () => {
+                          if (!other?.id) return;
+                          try {
+                            await friendsApi.block(other.id);
+                            invalidateCache('/friends');
+                            window.dispatchEvent(new CustomEvent('slide:friends-changed'));
+                            notify.success(t('friends.userBlocked') || 'User blocked');
+                          } catch (err) {
+                            notify.error(err.message);
+                          }
+                        }}
+                      >
+                        {t('friends.block')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             />
             {typingUser && (
               <div className="chat-typing">
@@ -1175,11 +1207,22 @@ const DirectChat = memo(function DirectChat({ conversationId, onConversationsCha
                 {typingUser.displayName} {t('chat.typing')}...
               </div>
             )}
-            <MessageInput 
+            {!hasMessages && !loading && (
+              <div className="dm-wave-prompt">
+                <div className="dm-wave-prompt-emoji">👋</div>
+                <button
+                  className="dm-wave-btn"
+                  onClick={() => sendMessage('👋', 'text')}
+                >
+                  {isGroup ? t('chat.sayHello') : t('chat.waveTo', { name: title })}
+                </button>
+              </div>
+            )}
+            <MessageInput
               ref={messageInputRef}
-              onSend={sendMessage} 
-              onUpload={uploadFile} 
-              onTyping={onTyping} 
+              onSend={sendMessage}
+              onUpload={uploadFile}
+              onTyping={onTyping}
               placeholder={`${t('chat.messageTo')} ${title}`}
               lastOwnMessage={lastOwnMessage}
               onEditLastMessage={handleEditLastMessage}

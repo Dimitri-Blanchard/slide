@@ -322,7 +322,7 @@ export function logDevToolsWarning() {
     'color: #faa61a; font-weight: bold; font-size: 14px;',
   ];
   const body = [
-    '%cPasting anything here that someone told you to paste could be used to STEAL your information and YOUR ACCOUNT.\nNever paste or run code in the console unless you know exactly what it does.',
+    '%cIf someone told you to paste something here, it could be used to STEAL your information and YOUR ACCOUNT.\nNever paste or run code in the console unless you know exactly what it does.',
     'color: #b9bbbe; font-size: 13px; line-height: 1.5;',
   ];
   try {

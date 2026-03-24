@@ -153,8 +153,85 @@ function formatDuration(seconds) {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+// Electron: simple HTML5 Audio player — Web Audio API can crash the renderer
+const VoiceMessagePlayerSimple = memo(function VoiceMessagePlayerSimple({ src, pending, failed }) {
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const togglePlay = useCallback(() => {
+    const a = audioRef.current;
+    if (!a || pending || failed) return;
+    if (a.paused) {
+      a.play().catch(() => {});
+      setIsPlaying(true);
+    } else {
+      a.pause();
+      setIsPlaying(false);
+    }
+  }, [pending, failed]);
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    const onEnd = () => setIsPlaying(false);
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    a.addEventListener('ended', onEnd);
+    a.addEventListener('play', onPlay);
+    a.addEventListener('pause', onPause);
+    return () => {
+      a.removeEventListener('ended', onEnd);
+      a.removeEventListener('play', onPlay);
+      a.removeEventListener('pause', onPause);
+    };
+  }, [src]);
+  if (pending) {
+    return (
+      <div className="voice-message pending">
+        <button className="voice-message-play" disabled><span className="voice-message-spinner" /></button>
+        <div className="voice-message-body"><div className="voice-message-waveform" /></div>
+      </div>
+    );
+  }
+  if (failed) {
+    return (
+      <div className="voice-message failed">
+        <button className="voice-message-play" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+        </button>
+        <div className="voice-message-body"><span className="voice-message-time">0:00</span></div>
+      </div>
+    );
+  }
+  return (
+    <div className={`voice-message ${isPlaying ? 'playing' : ''}`}>
+      <audio ref={audioRef} src={src} preload="metadata" />
+      <button className="voice-message-play" onClick={togglePlay}>
+        {isPlaying ? (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1.5" /><rect x="14" y="4" width="4" height="16" rx="1.5" /></svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z" /></svg>
+        )}
+      </button>
+      <div className="voice-message-body">
+        <div className="voice-message-waveform" style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {Array.from({ length: 24 }, (_, i) => <div key={i} className="voice-message-bar" style={{ height: `${20 + (i % 5) * 15}%` }} />)}
+        </div>
+        <div className="voice-message-info"><span className="voice-message-time">Voice message</span></div>
+      </div>
+    </div>
+  );
+});
+
 // Voice message player — uses Web Audio API for reliable seeking on WebM
+// In Electron, use simple HTML5 Audio to avoid renderer crashes
 const VoiceMessagePlayer = memo(function VoiceMessagePlayer({ src, fileName, pending, failed, initialDuration }) {
+  const isElectron = typeof window !== 'undefined' && window.electron?.isElectron;
+  if (isElectron) {
+    return <VoiceMessagePlayerSimple src={src} pending={pending} failed={failed} />;
+  }
+  return <VoiceMessagePlayerFull src={src} fileName={fileName} pending={pending} failed={failed} initialDuration={initialDuration} />;
+});
+
+const VoiceMessagePlayerFull = memo(function VoiceMessagePlayerFull({ src, fileName, pending, failed, initialDuration }) {
   const { settings } = useSettings();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -453,6 +530,25 @@ const VoiceMessagePlayer = memo(function VoiceMessagePlayer({ src, fileName, pen
     </div>
   );
 });
+
+// Error boundary for voice messages — prevents one bad message from crashing the chat
+class VoiceMessageBoundary extends React.Component {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="voice-message failed">
+          <button className="voice-message-play" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+          <div className="voice-message-body"><span className="voice-message-time">Audio unavailable</span></div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Reply quote component - displays the message being replied to
 const ReplyQuote = memo(function ReplyQuote({ replyToMessage, onScrollToMessage, t }) {
@@ -1155,13 +1251,15 @@ const MessageContent = memo(function MessageContent({ msg, isEditing, editConten
     
     if (isAudio) {
       return (
-        <VoiceMessagePlayer 
-          src={file_url} 
-          fileName={file_name} 
-          pending={msg._pending}
-          failed={msg._failed}
-          initialDuration={msg._voiceDuration}
-        />
+        <VoiceMessageBoundary>
+          <VoiceMessagePlayer 
+            src={file_url} 
+            fileName={file_name} 
+            pending={msg._pending}
+            failed={msg._failed}
+            initialDuration={msg._voiceDuration}
+          />
+        </VoiceMessageBoundary>
       );
     }
     

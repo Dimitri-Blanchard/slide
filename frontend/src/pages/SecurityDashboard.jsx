@@ -7,7 +7,6 @@ import { useNotification } from '../context/NotificationContext';
 import { useSettings } from '../context/SettingsContext';
 import { getOrCreateDeviceId } from '../utils/tokenStorage';
 import { auth, API_BASE } from '../api';
-import './SecurityDashboard.css';
 
 const SECURITY_SCROLL_KEY = 'slide_security_dashboard_scroll';
 

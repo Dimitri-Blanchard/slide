@@ -9,6 +9,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { auth, avatars as avatarsApi, settings as settingsApi, stickers as stickersApi, teams as teamsApi, friends as friendsApi, invalidateCache, BACKEND_ORIGIN } from '../api';
 import { validatePassword } from '../utils/security';
 import { getStoredOnlineStatus } from '../utils/presenceStorage';
+import { invalidateProfile } from '../utils/profileCache';
 import { harmonizeGradientColors, lightenHex, isLightGradient, isHighContrastGradient } from '../utils/gradientColors';
 import QRCode from 'qrcode';
 import { useAudioDevices } from '../hooks/useAudioDevices';
@@ -697,6 +698,7 @@ export default function Settings() {
   const [bannerColor, setBannerColor] = useState('#ffffff');
   const [bannerColor2, setBannerColor2] = useState('');
   const [bannerUrl, setBannerUrl] = useState('');
+  const [bannerPosition, setBannerPosition] = useState('center');
   const [hasNitro, setHasNitro] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const bannerInputRef = useRef(null);
@@ -885,6 +887,7 @@ export default function Settings() {
         const normalizedSecondary = normalizeOptionalColor(data.banner_color_2);
         setBannerColor2(normalizedSecondary);
         setBannerUrl(data.banner_url || '');
+        setBannerPosition(data.banner_position || 'center');
         setHasNitro(!!data.has_nitro);
         setSelectedAvatar(data.avatar_url);
         setOriginalProfile({
@@ -894,6 +897,7 @@ export default function Settings() {
           bannerColor: data.banner_color || '#ffffff',
           bannerColor2: normalizedSecondary,
           bannerUrl: data.banner_url || '',
+          bannerPosition: data.banner_position || 'center',
           avatarUrl: data.avatar_url,
           username: data.username || data.email?.split('@')[0] || '',
           phone: data.phone || '',
@@ -923,6 +927,7 @@ export default function Settings() {
             bannerColor: '#ffffff',
             bannerColor2: '',
             bannerUrl: '',
+            bannerPosition: 'center',
             avatarUrl: currentUser.avatar_url,
             username: currentUser.username || currentUser.email?.split('@')[0] || '',
             phone: currentUser.phone || '',
@@ -1051,12 +1056,14 @@ export default function Settings() {
   const verticalGrad = (a, b) => `linear-gradient(180deg, ${a} 0%, ${a} 12%, ${b} 88%, ${b} 100%)`;
   const getBannerStyle = () => {
     if (bannerUrl) {
-      const base = BACKEND_ORIGIN;
-      const url = bannerUrl.startsWith('http') ? bannerUrl : (base + bannerUrl);
+      const url = bannerUrl.startsWith('http') || bannerUrl.startsWith('blob:') || bannerUrl.startsWith('data:')
+        ? bannerUrl
+        : (BACKEND_ORIGIN + bannerUrl);
+      const posMap = { top: 'center top', center: 'center center', bottom: 'center bottom' };
       return {
         backgroundImage: `url(${url})`,
         backgroundSize: 'cover',
-        backgroundPosition: 'center top',
+        backgroundPosition: posMap[bannerPosition] || 'center center',
         backgroundRepeat: 'no-repeat',
       };
     }
@@ -1264,9 +1271,10 @@ export default function Settings() {
       statusMessage !== originalProfile.statusMessage ||
       aboutMe !== originalProfile.aboutMe ||
       bannerColor !== originalProfile.bannerColor ||
-      normalizeOptionalColor(bannerColor2) !== normalizeOptionalColor(originalProfile.bannerColor2 || '')
+      normalizeOptionalColor(bannerColor2) !== normalizeOptionalColor(originalProfile.bannerColor2 || '') ||
+      bannerPosition !== (originalProfile.bannerPosition || 'center')
     );
-  }, [displayName, statusMessage, aboutMe, bannerColor, bannerColor2, originalProfile]);
+  }, [displayName, statusMessage, aboutMe, bannerColor, bannerColor2, bannerPosition, originalProfile]);
 
   const hasAnyUnsavedChanges = hasUnsavedChanges || Object.keys(pendingToPersist).length > 0;
   const previousHasAnyUnsavedChangesRef = useRef(false);
@@ -1329,6 +1337,7 @@ export default function Settings() {
           aboutMe: aboutMe.trim() || null,
           bannerColor,
           bannerColor2: normalizeOptionalColor(bannerColor2) || null,
+          bannerPosition,
         };
         const updated = await settingsApi.updateProfile(payload);
         setProfile(updated);
@@ -1339,12 +1348,14 @@ export default function Settings() {
           status_message: updated.status_message ?? null,
           // Keep auth context in sync so banner gradients render immediately.
           banner_color_2: normalizedUpdatedSecondary || null,
+          banner_position: updated.banner_position || 'center',
         };
         if (updated.username != null) authUpdate.username = updated.username;
         if (updated.avatar_url != null) authUpdate.avatar_url = updated.avatar_url;
         if (updated.banner_color != null) authUpdate.banner_color = updated.banner_color;
         if (updated.banner_url != null) authUpdate.banner_url = updated.banner_url;
         updateUser?.(authUpdate);
+        if (user?.id) invalidateProfile(user.id);
         setOriginalProfile(prev => ({
           ...prev,
           displayName,
@@ -1352,6 +1363,7 @@ export default function Settings() {
           aboutMe,
           bannerColor,
           bannerColor2: normalizedUpdatedSecondary,
+          bannerPosition,
         }));
       }
       if (ptp.avatar) {
@@ -1361,6 +1373,7 @@ export default function Settings() {
         setSelectedAvatar(result.avatar_url);
         updateUser?.({ avatar_url: result.avatar_url });
         setOriginalProfile(prev => ({ ...prev, avatarUrl: result.avatar_url }));
+        if (user?.id) invalidateProfile(user.id);
         delete ptp.avatar;
       }
       if (ptp.bannerRemove) {
@@ -1370,6 +1383,7 @@ export default function Settings() {
         setProfile(p => (p ? { ...p, banner_url: null } : null));
         updateUser?.({ banner_url: null });
         setOriginalProfile(prev => ({ ...prev, bannerUrl: '' }));
+        if (user?.id) invalidateProfile(user.id);
         delete ptp.bannerRemove;
         delete ptp.banner;
       } else if (ptp.banner) {
@@ -1381,6 +1395,7 @@ export default function Settings() {
         setProfile(p => (p ? { ...p, banner_url } : null));
         updateUser?.({ banner_url });
         setOriginalProfile(prev => ({ ...prev, bannerUrl: banner_url }));
+        if (user?.id) invalidateProfile(user.id);
         if (bannerInputRef.current) bannerInputRef.current.value = '';
         delete ptp.banner;
       }
@@ -1395,7 +1410,7 @@ export default function Settings() {
       savingInProgressRef.current = false;
       setSaving(false);
     }
-  }, [hasAnyUnsavedChanges, hasUnsavedChanges, pendingToPersist, displayName, statusMessage, aboutMe, bannerColor, bannerColor2, originalProfile, profile?.totp_enabled, user, updateUser, notify, t]);
+  }, [hasAnyUnsavedChanges, hasUnsavedChanges, pendingToPersist, displayName, statusMessage, aboutMe, bannerColor, bannerColor2, bannerPosition, originalProfile, profile?.totp_enabled, user, updateUser, notify, t]);
   
   // Reset settings handler
   const handleResetSettings = async () => {
@@ -2308,6 +2323,27 @@ export default function Settings() {
                           </button>
                         )}
                       </div>
+                      {bannerUrl && (
+                        <div className="profile-banner-position-row">
+                          <span className="profile-banner-position-label">Position</span>
+                          <div className="profile-banner-position-btns">
+                            {[
+                              { value: 'top', label: 'Haut' },
+                              { value: 'center', label: 'Centre' },
+                              { value: 'bottom', label: 'Bas' },
+                            ].map(pos => (
+                              <button
+                                key={pos.value}
+                                type="button"
+                                className={`profile-banner-position-btn${bannerPosition === pos.value ? ' active' : ''}`}
+                                onClick={() => setBannerPosition(pos.value)}
+                              >
+                                {pos.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       <div className="profile-banner-gradient-row">
                         <span className="profile-banner-gradient-label">{t('profile.gradientColor')}</span>
                         <ColorPicker value={bannerColor2 || '#4f6ef7'} onChange={setBannerColor2} className="profile-color-picker" />
@@ -3627,6 +3663,7 @@ export default function Settings() {
                 setAboutMe(originalProfile?.aboutMe || '');
                 setBannerColor(originalProfile?.bannerColor || '#ffffff');
                 setBannerColor2(originalProfile?.bannerColor2 || '');
+                setBannerPosition(originalProfile?.bannerPosition || 'center');
                 setUsername(originalProfile?.username ?? profile?.username ?? profile?.email?.split('@')[0] ?? '');
                 setPhone(originalProfile?.phone ?? profile?.phone ?? '');
                 if (pendingToPersist.avatar?.previewUrl) URL.revokeObjectURL(pendingToPersist.avatar.previewUrl);

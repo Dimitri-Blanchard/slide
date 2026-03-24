@@ -755,79 +755,137 @@
   animation: spin 0.8s linear infinite;
 }
 
-/* DM Empty Conversation State */
+/* DM Empty Conversation State — Discord style (inside topBanner) */
 .dm-empty-conversation {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 2rem 1.5rem;
-  text-align: center;
-  animation: dmEmptyFadeIn 0.4s ease;
+  align-items: flex-start;
+  padding: 16px 16px 0;
 }
 
-@keyframes dmEmptyFadeIn {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.dm-empty-avatar-ring {
+.dm-empty-avatar-section {
   position: relative;
-  margin-bottom: 1.25rem;
+  margin-bottom: 8px;
 }
 
-.dm-empty-avatar-ring::before {
-  display: none;
+.dm-empty-avatar-section .avatar {
+  width: 80px;
+  height: 80px;
+  border: none;
 }
 
-.dm-empty-avatar-ring .avatar {
-  width: 72px;
-  height: 72px;
-  border-width: 3px;
-}
-
-.dm-empty-avatar-ring .avatar img {
+.dm-empty-avatar-section .avatar img {
   width: 100%;
   height: 100%;
 }
 
 .dm-empty-name {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 700;
   color: var(--text-primary);
-  margin: 0 0 0.25rem;
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+
+.dm-empty-username {
+  font-size: 0.9375rem;
+  color: var(--text-secondary, var(--text-muted));
+  margin: 0 0 8px;
+  font-weight: 400;
 }
 
 .dm-empty-hint {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   color: var(--text-muted);
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  margin: 0 0 1.25rem;
-  max-width: 400px;
-  line-height: 1.5;
+  margin: 0 0 12px;
+  line-height: 1.375;
 }
 
-.dm-empty-wave {
+.dm-empty-hint strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Action row: Add Friend / Block buttons */
+.dm-empty-action-row {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.dm-add-friend-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 16px;
+  height: 32px;
+  background: #248046;
+  border: none;
+  border-radius: 3px;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.17s ease;
+}
+
+.dm-add-friend-btn:hover {
+  background: #1a6334;
+}
+
+.dm-block-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 16px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.17s ease, border-color 0.17s ease;
+}
+
+.dm-block-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--text-muted);
+}
+
+/* Wave prompt — sits just above the message input */
+.dm-wave-prompt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+}
+
+.dm-wave-prompt-emoji {
+  font-size: 2.5rem;
+  animation: dmWaveAnim 1s ease-in-out infinite alternate;
+  transform-origin: 70% 80%;
+}
+
+@keyframes dmWaveAnim {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(20deg); }
 }
 
 .dm-wave-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 24px;
+  justify-content: center;
+  padding: 0 20px;
+  height: 38px;
   background: var(--accent);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: 20px;
   color: var(--accent-text);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background-color 0.17s ease, opacity 0.17s ease;
 }
 
 .dm-wave-btn:hover {
@@ -835,7 +893,7 @@
 }
 
 .dm-wave-btn:active {
-  transform: translateY(0);
+  opacity: 0.9;
 }
 
 /* Mobile back button (DirectChat) */

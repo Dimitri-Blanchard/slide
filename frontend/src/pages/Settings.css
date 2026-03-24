@@ -1439,7 +1439,7 @@
   position: relative !important;
   top: auto !important;
   left: auto !important;
-  width: 100% !important;
+  width: 320px !important;
   max-width: 100%;
   margin: 0;
   animation: none !important;
@@ -1898,6 +1898,46 @@
   color: var(--error, #ed4245);
 }
 
+.profile-banner-position-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.profile-banner-position-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  min-width: 120px;
+}
+
+.profile-banner-position-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.profile-banner-position-btn {
+  padding: 5px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.profile-banner-position-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.profile-banner-position-btn.active {
+  background: var(--brand-primary, #5865f2);
+  border-color: var(--brand-primary, #5865f2);
+  color: #fff;
+}
+
 .profile-banner-gradient-row {
   display: flex;
   align-items: center;
@@ -2142,7 +2182,7 @@
 
 .profile-preview-info span {
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .profile-preview-status {
@@ -2164,7 +2204,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.65);
   margin: 0 0 0.35rem;
 }
 

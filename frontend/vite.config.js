@@ -37,6 +37,9 @@ export default defineConfig({
   // PERFORMANCE: Build optimizations
   // ═══════════════════════════════════════════════════════════
   build: {
+    // One CSS bundle — avoids Vite runtime "Unable to preload CSS" for lazy routes when
+    // /assets/*.css is missing (partial deploy) or index.html is cached with stale hashes.
+    cssCodeSplit: false,
     // Smaller chunks for better caching
     chunkSizeWarningLimit: 500,
     rollupOptions: {

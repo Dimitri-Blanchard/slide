@@ -1,0 +1,36 @@
+{
+  "name": "slide-installer",
+  "version": "1.0.0",
+  "description": "Slide installer",
+  "main": "main.cjs",
+  "private": true,
+  "scripts": {
+    "build": "electron-builder --win"
+  },
+  "dependencies": {
+    "extract-zip": "^2.0.1"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.slide.messenger.installer",
+    "productName": "Slide Setup",
+    "directories": {
+      "output": "../release",
+      "buildResources": "resources"
+    },
+    "extraResources": [
+      { "from": "app.zip", "to": "." }
+    ],
+    "files": ["main.cjs", "preload.cjs", "index.html", "styles.css", "renderer.js", "icon.ico"],
+    "win": {
+      "target": [{ "target": "portable", "arch": ["x64"] }],
+      "icon": "../build/icon.ico"
+    },
+    "portable": {
+      "artifactName": "Slide-Setup.${ext}"
+    }
+  }
+}

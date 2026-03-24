@@ -20,6 +20,9 @@ frontend/public/downloads/*.rar
 frontend/public/downloads/*.apk
 frontend/public/downloads/*.exe
 
+# Installer build artifact (large; regenerate locally)
+frontend/installer/app.zip
+
 # ─── Electron ─────────────────────────────────────────────────────────────────
 frontend/electron/.env
 # Keep .env.example

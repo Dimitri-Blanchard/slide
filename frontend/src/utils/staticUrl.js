@@ -7,10 +7,13 @@
 
 const FIXED_BACKEND_ORIGIN = 'http://192.168.1.176:3000';
 const SL1DE_WEB_BACKEND_ORIGIN = 'https://api.sl1de.xyz';
+/** Electron app MUST always use this backend for static assets */
+const ELECTRON_BACKEND_ORIGIN = 'https://api.sl1de.xyz';
 
 function getStaticBase() {
-  const isNativeRuntime = typeof window !== 'undefined'
-    && (!!window.electron?.isElectron || !!window.Capacitor?.isNativePlatform?.());
+  const isElectron = typeof window !== 'undefined' && !!window.electron?.isElectron;
+  const isCapacitor = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
+  const isNativeRuntime = isElectron || isCapacitor;
   const isWebOnSl1deDomain = typeof window !== 'undefined'
     && /(^|\.)sl1de\.xyz$/i.test(window.location.hostname);
   // CDN takes priority when configured
@@ -21,8 +24,8 @@ function getStaticBase() {
   if (!isNativeRuntime && isWebOnSl1deDomain) return SL1DE_WEB_BACKEND_ORIGIN;
   // Web over HTTPS must stay same-origin to avoid Mixed Content + PNA blocks.
   if (!isNativeRuntime && typeof window !== 'undefined') return window.location.origin;
-  // Native runtimes can call backend directly.
-  return FIXED_BACKEND_ORIGIN;
+  // Electron always uses production API; Capacitor uses FIXED_BACKEND_ORIGIN.
+  return isElectron ? ELECTRON_BACKEND_ORIGIN : FIXED_BACKEND_ORIGIN;
 }
 
 /**

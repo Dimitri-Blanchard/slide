@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Install Slide</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="window">
+    <header class="header">
+      <div class="logo">
+        <img src="icon.ico" alt="" class="logo-img" onerror="this.style.display='none'">
+        <span class="logo-text">Slide</span>
+      </div>
+      <button class="btn-close" id="btnClose" title="Close">×</button>
+    </header>
+    <main class="content">
+      <div id="stateIdle" class="state">
+        <p class="message">Install Slide to your computer</p>
+        <button class="btn-install" id="btnInstall">Install</button>
+      </div>
+      <div id="stateInstalling" class="state hidden">
+        <div class="spinner"></div>
+        <p class="message">Installing…</p>
+      </div>
+      <div id="stateDone" class="state hidden">
+        <div class="check">✓</div>
+        <p class="message">Slide has been installed.</p>
+        <button class="btn-launch" id="btnLaunch">Open Slide</button>
+      </div>
+      <div id="stateError" class="state hidden">
+        <div class="error-icon">!</div>
+        <p class="message error-msg" id="errorMsg"></p>
+        <button class="btn-retry" id="btnRetry">Retry</button>
+      </div>
+    </main>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

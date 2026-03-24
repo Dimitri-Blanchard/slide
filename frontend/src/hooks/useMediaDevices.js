@@ -1,17 +1,48 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 /**
  * Enumerate audio/video devices for call device selection.
  * Returns inputs (mics), outputs (speakers/headphones), and videoInputs (cameras).
+ *
+ * Browsers require getUserMedia permission before enumerateDevices returns
+ * real device labels/IDs. This hook automatically requests a brief permission
+ * grant when the initial enumeration returns unlabeled devices.
  */
 export function useMediaDevices() {
   const [inputs, setInputs] = useState([]);
   const [outputs, setOutputs] = useState([]);
   const [videoInputs, setVideoInputs] = useState([]);
+  const permissionRequested = useRef(false);
 
   const enumerate = useCallback(async () => {
     if (!navigator.mediaDevices?.enumerateDevices) return;
-    const devices = await navigator.mediaDevices.enumerateDevices();
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+
+      // If we get devices back but none have labels, the browser hasn't
+      // granted permission yet. Request a quick getUserMedia to unlock labels.
+      const hasLabels = devices.some(d => d.label);
+      if (!hasLabels && devices.length > 0 && !permissionRequested.current) {
+        permissionRequested.current = true;
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream.getTracks().forEach(t => t.stop());
+          // Re-enumerate now that we have permission
+          const updated = await navigator.mediaDevices.enumerateDevices();
+          applyDevices(updated);
+          return;
+        } catch (_) {
+          // User denied — continue with unlabeled devices
+        }
+      }
+
+      applyDevices(devices);
+    } catch (err) {
+      console.error('Error enumerating devices:', err);
+    }
+  }, []);
+
+  function applyDevices(devices) {
     const fallbackLabel = (kind, deviceId, i) => {
       if (kind === 'audioinput') return `Microphone ${i + 1}`;
       if (kind === 'audiooutput') return `Speakers ${i + 1}`;
@@ -28,7 +59,7 @@ export function useMediaDevices() {
     setInputs(mapDevices('audioinput', 'Microphone'));
     setOutputs(mapDevices('audiooutput', 'Speakers'));
     setVideoInputs(mapDevices('videoinput', 'Camera'));
-  }, []);
+  }
 
   useEffect(() => {
     enumerate();

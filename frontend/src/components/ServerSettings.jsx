@@ -1295,11 +1295,15 @@ const WebhooksTab = ({ team, channels }) => {
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [newChannelId, setNewChannelId] = useState('');
-  const [newAvatarUrl, setNewAvatarUrl] = useState('');
+  const [newAvatarFile, setNewAvatarFile] = useState(null);
+  const [newAvatarPreview, setNewAvatarPreview] = useState('');
   const [copiedId, setCopiedId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
-  const [editAvatarUrl, setEditAvatarUrl] = useState('');
+  const [editAvatarFile, setEditAvatarFile] = useState(null);
+  const [editAvatarPreview, setEditAvatarPreview] = useState('');
+  const newAvatarInputRef = useRef(null);
+  const editAvatarInputRef = useRef(null);
   const { notify } = useNotification();
 
   const textChannels = (channels || []).filter(c => c.channel_type === 'text' || !c.channel_type);
@@ -1311,21 +1315,51 @@ const WebhooksTab = ({ team, channels }) => {
       .finally(() => setLoading(false));
   }, [team.id]);
 
+  const handleNewAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+      notify.error('Avatar must be PNG, JPG or WebP.');
+      return;
+    }
+    setNewAvatarFile(file);
+    setNewAvatarPreview(URL.createObjectURL(file));
+    e.target.value = '';
+  };
+
+  const handleEditAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+      notify.error('Avatar must be PNG, JPG or WebP.');
+      return;
+    }
+    setEditAvatarFile(file);
+    setEditAvatarPreview(URL.createObjectURL(file));
+    e.target.value = '';
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!newName.trim() || !newChannelId) return;
-    const avatarUrl = newAvatarUrl.trim() || null;
-    if (avatarUrl && !isAllowedWebhookAvatarUrl(avatarUrl)) {
-      notify.error('Avatar must be a static image (PNG, JPG, WebP). No GIFs, banners, or banner colors.');
-      return;
-    }
     setCreating(true);
     try {
-      const wh = await webhooksApi.create(team.id, { name: newName.trim(), channelId: parseInt(newChannelId), avatarUrl });
-      setWebhookList([wh, ...webhookList]);
+      const wh = await webhooksApi.create(team.id, { name: newName.trim(), channelId: parseInt(newChannelId) });
+      let created = wh;
+      if (newAvatarFile) {
+        try {
+          const avatarResult = await webhooksApi.uploadAvatar(team.id, wh.id, newAvatarFile);
+          created = { ...created, avatar_url: avatarResult.avatar_url };
+        } catch (avatarErr) {
+          notify.error('Webhook created but avatar upload failed: ' + (avatarErr.message || ''));
+        }
+      }
+      setWebhookList([created, ...webhookList]);
       setNewName('');
       setNewChannelId('');
-      setNewAvatarUrl('');
+      if (newAvatarPreview) URL.revokeObjectURL(newAvatarPreview);
+      setNewAvatarFile(null);
+      setNewAvatarPreview('');
       setShowForm(false);
       notify.success('Webhook created');
     } catch (err) { notify.error(err.message || 'Failed to create webhook'); }
@@ -1335,22 +1369,33 @@ const WebhooksTab = ({ team, channels }) => {
   const startEdit = (wh) => {
     setEditingId(wh.id);
     setEditName(wh.name || '');
-    setEditAvatarUrl(wh.avatar_url || '');
+    setEditAvatarFile(null);
+    setEditAvatarPreview('');
   };
 
-  const cancelEdit = () => { setEditingId(null); setEditName(''); setEditAvatarUrl(''); };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditName('');
+    if (editAvatarPreview) URL.revokeObjectURL(editAvatarPreview);
+    setEditAvatarFile(null);
+    setEditAvatarPreview('');
+  };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!editingId || !editName.trim()) return;
-    const avatarUrl = editAvatarUrl.trim() || null;
-    if (avatarUrl && !isAllowedWebhookAvatarUrl(avatarUrl)) {
-      notify.error('Avatar must be a static image (PNG, JPG, WebP). No GIFs, banners, or banner colors.');
-      return;
-    }
     try {
-      const updated = await webhooksApi.update(team.id, editingId, { name: editName.trim(), avatarUrl: avatarUrl || null });
-      setWebhookList(webhookList.map(w => w.id === editingId ? { ...w, ...updated } : w));
+      const updated = await webhooksApi.update(team.id, editingId, { name: editName.trim() });
+      let result = { ...updated };
+      if (editAvatarFile) {
+        try {
+          const avatarResult = await webhooksApi.uploadAvatar(team.id, editingId, editAvatarFile);
+          result.avatar_url = avatarResult.avatar_url;
+        } catch (avatarErr) {
+          notify.error('Name updated but avatar upload failed: ' + (avatarErr.message || ''));
+        }
+      }
+      setWebhookList(webhookList.map(w => w.id === editingId ? { ...w, ...result } : w));
       cancelEdit();
       notify.success('Webhook updated');
     } catch (err) { notify.error(err.message || 'Failed to update webhook'); }
@@ -1376,10 +1421,25 @@ const WebhooksTab = ({ team, channels }) => {
 
   const getWebhookUrl = (wh) => `${BACKEND_ORIGIN}/api/webhooks/execute/${wh.token}`;
 
-  const copyUrl = (wh) => {
-    navigator.clipboard?.writeText(getWebhookUrl(wh))
-      .then(() => { setCopiedId(wh.id); setTimeout(() => setCopiedId(null), 2000); })
-      .catch(() => {});
+  const copyUrl = async (wh) => {
+    const url = getWebhookUrl(wh);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.cssText = 'position:fixed;opacity:0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setCopiedId(wh.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      notify.error('Failed to copy URL');
+    }
   };
 
   return (
@@ -1413,13 +1473,25 @@ const WebhooksTab = ({ team, channels }) => {
             </select>
           </div>
           <div className="ss-field">
-            <label>Avatar URL <span className="ss-field-hint">(optional — PNG, JPG or WebP only)</span></label>
+            <label>Avatar <span className="ss-field-hint">(optional — PNG, JPG or WebP only)</span></label>
             <input
-              type="url"
-              value={newAvatarUrl}
-              placeholder="https://example.com/avatar.png"
-              onChange={(e) => setNewAvatarUrl(e.target.value)}
+              ref={newAvatarInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleNewAvatarChange}
+              style={{ display: 'none' }}
             />
+            <div className="ss-field-row" style={{ gap: '8px', alignItems: 'center' }}>
+              {newAvatarPreview && <img src={newAvatarPreview} alt="Avatar preview" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />}
+              <button type="button" className="ss-btn-ghost" onClick={() => newAvatarInputRef.current?.click()}>
+                {newAvatarFile ? 'Change avatar' : 'Upload avatar'}
+              </button>
+              {newAvatarFile && (
+                <button type="button" className="ss-btn-ghost" onClick={() => { if (newAvatarPreview) URL.revokeObjectURL(newAvatarPreview); setNewAvatarFile(null); setNewAvatarPreview(''); }}>
+                  Remove
+                </button>
+              )}
+            </div>
           </div>
           <div className="ss-field-row">
             <button type="submit" className="ss-btn-save" disabled={creating || !newName.trim() || !newChannelId}>
@@ -1446,8 +1518,25 @@ const WebhooksTab = ({ team, channels }) => {
                     <input type="text" value={editName} maxLength={80} onChange={(e) => setEditName(e.target.value)} />
                   </div>
                   <div className="ss-field">
-                    <label>Avatar URL <span className="ss-field-hint">(PNG, JPG or WebP only)</span></label>
-                    <input type="url" value={editAvatarUrl} placeholder="https://example.com/avatar.png" onChange={(e) => setEditAvatarUrl(e.target.value)} />
+                    <label>Avatar <span className="ss-field-hint">(PNG, JPG or WebP only)</span></label>
+                    <input
+                      ref={editAvatarInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleEditAvatarChange}
+                      style={{ display: 'none' }}
+                    />
+                    <div className="ss-field-row" style={{ gap: '8px', alignItems: 'center' }}>
+                      {editAvatarPreview && <img src={editAvatarPreview} alt="Avatar preview" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />}
+                      <button type="button" className="ss-btn-ghost" onClick={() => editAvatarInputRef.current?.click()}>
+                        {editAvatarFile ? 'Change avatar' : 'Upload avatar'}
+                      </button>
+                      {editAvatarFile && (
+                        <button type="button" className="ss-btn-ghost" onClick={() => { if (editAvatarPreview) URL.revokeObjectURL(editAvatarPreview); setEditAvatarFile(null); setEditAvatarPreview(''); }}>
+                          Remove
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="ss-field-row">
                     <button type="button" className="ss-btn-ghost" onClick={cancelEdit}>Cancel</button>

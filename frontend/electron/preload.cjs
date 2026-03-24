@@ -1,8 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-const BACKEND_HOST = '192.168.1.176';
-const BACKEND_PORT = 3000;
-const apiBaseUrl = `http://${BACKEND_HOST}:${BACKEND_PORT}`;
+/** Electron app MUST always use this backend (no override) */
+const ELECTRON_BACKEND_ORIGIN = 'https://api.sl1de.xyz';
 const cdnBaseUrl = process.env.SLIDE_CDN_BASE_URL || '';
 
 contextBridge.exposeInMainWorld('electron', {
@@ -10,7 +9,7 @@ contextBridge.exposeInMainWorld('electron', {
   platform: process.platform,
 
   // ── Backend URLs ────────────────────────────────────────────────────────────
-  apiBaseUrl,
+  apiBaseUrl: ELECTRON_BACKEND_ORIGIN,
   cdnBaseUrl: cdnBaseUrl || undefined,
 
   // ── Startup ─────────────────────────────────────────────────────────────────

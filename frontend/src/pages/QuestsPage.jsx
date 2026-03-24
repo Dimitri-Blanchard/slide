@@ -4,7 +4,6 @@ import confetti from 'canvas-confetti';
 import { useLanguage } from '../context/LanguageContext';
 import { useNotification } from '../context/NotificationContext';
 import { quests as questsApi } from '../api';
-import './QuestsPage.css';
 
 const TAB_ICONS = { daily: Target, weekly: Trophy, seasonal: Gift };
 

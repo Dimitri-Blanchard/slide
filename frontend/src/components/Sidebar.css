@@ -699,15 +699,15 @@
 /* Section labels: near invisible */
 [data-theme="dark"] .sidebar-section-label,
 [data-theme="dark"] .sidebar-category {
-  color: rgba(255,255,255,0.20);
-  font-size: 0.60rem;
+  color: rgba(255,255,255,0.45);
+  font-size: 0.65rem;
   letter-spacing: 0.10em;
 }
 /* Search bar */
 [data-theme="dark"] .sidebar-search-btn span {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.45);
 }
 [data-theme="dark"] .sidebar-search-btn:hover span {
   background: rgba(255,255,255,0.07);
@@ -716,7 +716,7 @@
 }
 /* Nav items (Friends, etc.) */
 [data-theme="dark"] .sidebar-nav-item {
-  color: rgba(255,255,255,0.40);
+  color: rgba(255,255,255,0.55);
 }
 [data-theme="dark"] .sidebar-nav-item:hover {
   background: rgba(255,255,255,0.04);

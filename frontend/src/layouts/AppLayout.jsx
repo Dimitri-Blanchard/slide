@@ -29,6 +29,9 @@ import { useOffline } from '../context/OfflineContext';
 import { useScene } from '../context/SceneContext';
 import { useNotification } from '../context/NotificationContext';
 import Settings from '../pages/Settings';
+import '../pages/SecurityDashboard.css';
+import '../pages/NitroPage.css';
+import '../pages/QuestsPage.css';
 import './AppLayout.css';
 
 function useIsMobile(breakpoint = 768) {
@@ -297,14 +300,15 @@ function AppLayout() {
     }
   }, [teams]);
 
-  // Electron: sync OS taskbar badge + dock badge with total unread count
+  // Electron: sync OS taskbar badge with structured unread data
   useEffect(() => {
     if (!window.electron?.setBadgeCount) return;
-    const dmTotal = (Array.isArray(conversations) ? conversations : [])
-      .reduce((n, c) => n + (c.unread_count || 0), 0);
-    const serverTotal = (Array.isArray(teams) ? teams : [])
-      .reduce((n, t) => n + (t.unread_count || 0), 0);
-    window.electron.setBadgeCount(dmTotal + serverTotal);
+    const convList = Array.isArray(conversations) ? conversations : [];
+    const teamList = Array.isArray(teams) ? teams : [];
+    const mentions = teamList.reduce((n, t) => n + (t.mention_count || 0), 0);
+    const hasUnreadDm = convList.some((c) => (c.unread_count || 0) > 0);
+    const hasUnreadServer = teamList.some((t) => (t.unread_count || 0) > 0 && !(t.mention_count > 0));
+    window.electron.setBadgeCount({ mentions: Math.min(mentions, 9), hasUnreadDm, hasUnreadServer });
   }, [conversations, teams]);
 
   // Electron: track window focus so we know when to fire native notifications
@@ -616,15 +620,25 @@ function AppLayout() {
     const invalidateFriends = () => {
       invalidateCache('/friends');
     };
+    const onFriendAccepted = (data) => {
+      invalidateCache('/friends');
+      // Add the auto-created DM conversation to sidebar
+      if (data?.conversation) {
+        setConversations((prev) => {
+          if (prev.some((c) => c.conversation_id === data.conversation.conversation_id)) return prev;
+          return [{ ...data.conversation, unread_count: 0 }, ...prev];
+        });
+      }
+    };
     socket.on('friend_request', invalidateFriends);
     socket.on('friend_request_sent', invalidateFriends);
-    socket.on('friend_accepted', invalidateFriends);
+    socket.on('friend_accepted', onFriendAccepted);
     socket.on('friend_removed', invalidateFriends);
     socket.on('friend_request_cancelled', invalidateFriends);
     return () => {
       socket.off('friend_request', invalidateFriends);
       socket.off('friend_request_sent', invalidateFriends);
-      socket.off('friend_accepted', invalidateFriends);
+      socket.off('friend_accepted', onFriendAccepted);
       socket.off('friend_removed', invalidateFriends);
       socket.off('friend_request_cancelled', invalidateFriends);
     };

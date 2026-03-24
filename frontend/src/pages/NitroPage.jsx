@@ -6,7 +6,6 @@ import { useLanguage } from '../context/LanguageContext';
 import { useNotification } from '../context/NotificationContext';
 import { nitro as nitroApi } from '../api';
 import { formatNitroPriceMonthly } from '../utils/currency';
-import './NitroPage.css';
 
 function fireNitroConfetti() {
   const defaults = { origin: { y: 0.6 }, disableForReducedMotion: true, zIndex: 10000 };

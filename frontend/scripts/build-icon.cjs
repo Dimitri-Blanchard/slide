@@ -29,6 +29,7 @@ const input = fs.readFileSync(iconPng);
 toIco(input, { resize: true, sizes: [16, 24, 32, 48, 64, 128, 256] })
   .then((buf) => {
     fs.writeFileSync(iconIco, buf);
+    fs.copyFileSync(iconIco, path.join(buildDir, 'installerHeaderIcon.ico'));
     console.log('Created build/icon.ico');
   })
   .catch((err) => {
